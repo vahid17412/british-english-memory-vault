@@ -1,0 +1,52 @@
+{
+  "name": "british-english-memory-vault",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit --strict",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "audit": "npm audit",
+    "knip": "knip",
+    "depcruise": "dependency-cruiser src --validate .dependency-cruiser.js"
+  },
+  "dependencies": {
+    "dexie": "^4.0.4",
+    "flexsearch": "^0.7.31",
+    "next": "14.2.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.23.8",
+    "zustand": "^4.5.2",
+    "dompurify": "^3.1.6"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/flexsearch": "^0.7.6",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "autoprefixer": "^10.4.19",
+    "dependency-cruiser": "^16.3.3",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.3",
+    "eslint-config-prettier": "^9.1.0",
+    "happy-dom": "^14.12.0",
+    "knip": "^5.12.0",
+    "postcss": "^8.4.38",
+    "prettier": "^3.2.5",
+    "prettier-plugin-tailwindcss": "^0.5.14",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0",
+    "workbox-build": "^7.1.0",
+    "workbox-window": "^7.1.0"
+  }
+}
