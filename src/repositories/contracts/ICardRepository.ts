@@ -9,4 +9,6 @@ export interface ICardRepository {
   readonly getAll: () => Promise<readonly Card[]>;
   readonly count: () => Promise<number>;
   readonly clear: () => Promise<void>;
+  readonly getByCanonicalForms: (forms: readonly string[]) => Promise<readonly Card[]>;
+  readonly getPaginated: (offset: number, limit: number) => Promise<readonly Card[]>;
 }

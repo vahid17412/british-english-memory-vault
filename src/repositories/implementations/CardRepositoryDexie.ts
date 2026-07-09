@@ -14,7 +14,6 @@ export class CardRepositoryDexie implements ICardRepository {
   }
 
   async update(id: string, updates: Partial<Card>): Promise<void> {
-    // Whitelist sanitization
     const allowedFields = ['status', 'difficulty', 'recallStrength', 'intervalDays', 'nextReviewAt', 'updatedAt', 'archivedAt'];
     const sanitized: any = {};
     for (const key of allowedFields) {
@@ -36,6 +35,31 @@ export class CardRepositoryDexie implements ICardRepository {
     return Object.freeze(all.map(CardMapper.toDomain));
   }
 
-  async count(): Promise<number> { return await db.cards.count(); }
-  async clear(): Promise<void> { await db.cards.clear(); }
+  async count(): Promise<number> { 
+    return await db.cards.count(); 
+  }
+
+  async clear(): Promise<void> { 
+    await db.cards.clear(); 
+  }
+
+  async getByCanonicalForms(forms: readonly string[]): Promise<readonly Card[]> {
+    const results = await db.cards.where('canonicalForm').anyOf([...forms]).toArray();
+    return Object.freeze(results.map(CardMapper.toDomain));
+  }
+
+  async getPaginated(offset: number, limit: number): Promise<readonly Card[]> {
+    if (offset < 0 || limit <= 0) {
+      throw new Error('[CardRepository] Invalid pagination parameters');
+    }
+    
+    const results = await db.cards
+      .orderBy('updatedAt')
+      .reverse()
+      .offset(offset)
+      .limit(limit)
+      .toArray();
+      
+    return Object.freeze(results.map(CardMapper.toDomain));
+  }
 }

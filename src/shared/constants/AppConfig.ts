@@ -1,0 +1,17 @@
+export const APP_CONFIG = {
+  APP_NAME: 'Nahar-paz SRS',
+  QUEUE: {
+    NEW_CARDS_CAP: 20,
+    REVIEW_CARDS_CAP: 100,
+  },
+  IMPORT: {
+    CHUNK_SIZE: 2000,
+    MAX_TEXT_LENGTH: 2000,
+    MAX_TARGET_LENGTH: 500,
+  },
+  BROWSER: {
+    PAGE_SIZE: 50,
+    SEARCH_DEBOUNCE_MS: 300,
+    REINDEX_DEBOUNCE_MS: 2000,
+  }
+} as const;

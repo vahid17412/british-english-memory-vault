@@ -10,14 +10,20 @@ export const UI_CONSTANTS = {
     BTN_GOT_IT: 'Got it',
   },
   ERRORS: {
-    LOAD_FAILED: 'Failed to load review queue.',
+    LOAD_FAILED: 'Failed to load data.',
     SUBMIT_FAILED: 'Failed to submit review. Please try again.',
-  }
-} as const;
-
-export const APP_CONFIG = {
-  QUEUE: {
-    NEW_CARDS_CAP: 20,
-    REVIEW_CARDS_CAP: 100,
+  },
+  BROWSER: {
+    TITLE: 'Card Browser',
+    SEARCH_PLACEHOLDER: 'Search vocabulary, idioms, or meanings...',
+    NO_RESULTS: 'No cards found matching your query.',
+    EMPTY_STATE: 'Your deck is empty. Import some cards to get started!',
+    TOTAL_CARDS: 'Total Cards',
+    CONFIRM_DELETE: 'Confirm',
+    CANCEL_DELETE: 'Cancel',
+    STATUS_LEARNING: 'Learning',
+    STATUS_MATURE: 'Mature',
+    LOAD_MORE: 'Load More',
+    ERROR_FETCH: 'Failed to load cards. Please try again.',
   }
 } as const;
