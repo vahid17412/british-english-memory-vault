@@ -4,7 +4,7 @@ export interface IEventBus {
   readonly subscribe: <T extends AppEvent>(
     eventType: T['type'], 
     handler: (event: T) => void | Promise<void>
-  ) => void;
+  ) => () => void;
   
-  readonly publish: (event: AppEvent) => void;
+  readonly publish: (event: AppEvent) => Promise<void>;
 }

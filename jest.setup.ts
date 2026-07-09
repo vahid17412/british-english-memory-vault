@@ -1,7 +1,6 @@
 import '@testing-library/jest-dom';
 import 'fake-indexeddb/auto';
 
-// 1 & 3: Strict Worker Mock for Node.js 20+
 class WorkerMock implements Partial<Worker> {
   url: string;
   onmessage: ((this: Worker, ev: MessageEvent) => any) | null = null;
@@ -23,7 +22,6 @@ Object.defineProperty(globalThis, 'Worker', {
   value: WorkerMock,
 });
 
-// 2: Deterministic UUID for Predictable Tests
 let uuidCounter = 0;
 Object.defineProperty(globalThis, 'crypto', {
   value: {
@@ -31,12 +29,10 @@ Object.defineProperty(globalThis, 'crypto', {
   },
 });
 
-// 16 & 17: Global Teardown and Mock Reset
 afterEach(async () => {
   jest.clearAllMocks();
   jest.restoreAllMocks();
   
-  // Clean up fake-indexeddb safely
   const { indexedDB } = window;
   if (indexedDB.databases) {
     const dbs = await indexedDB.databases();

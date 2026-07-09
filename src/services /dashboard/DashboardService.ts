@@ -1,7 +1,7 @@
 import { QueueBuilder } from '@/services/QueueBuilder';
 import { IStatisticsRepository } from '@/repositories/contracts/IStatisticsRepository';
+import { SettingsService } from '@/services/settings/SettingsService';
 import { IClock } from '@/shared/interfaces/IClock';
-import { APP_CONFIG } from '@/shared/constants/AppConfig';
 
 export interface DashboardMetricsDTO {
   readonly queueLength: number;
@@ -14,31 +14,33 @@ export class DashboardService {
   constructor(
     private readonly queueBuilder: QueueBuilder,
     private readonly statsRepo: IStatisticsRepository,
+    private readonly settingsService: SettingsService,
     private readonly clock: IClock
   ) {}
 
   async getTodayMetrics(signal?: AbortSignal): Promise<DashboardMetricsDTO> {
     if (signal?.aborted) throw new Error('Query aborted');
-
     const todayId = this.clock.dateId(this.clock.now());
 
-    // Concurrency Optimization via Promise.all
+    const settings = await this.settingsService.getSettings();
+
     const [queueLength, stats] = await Promise.all([
       this.queueBuilder.getDailyQueueCount({
-        newCardsCap: APP_CONFIG.QUEUE.NEW_CARDS_CAP,
-        reviewCardsCap: APP_CONFIG.QUEUE.REVIEW_CARDS_CAP,
+        newCardsCap: settings.newCardsCap,
+        reviewCardsCap: settings.reviewCardsCap,
       }),
       this.statsRepo.getDailyStats(todayId)
     ]);
 
-    if (signal?.aborted) throw new Error('Query aborted post-fetch');
+    if (signal?.aborted) throw new Error('Query aborted');
 
     let accuracy = 0;
     let rawSeconds = 0;
 
     if (stats && stats.totalReviews > 0) {
       accuracy = (stats.correctReviews / stats.totalReviews) * 100;
-      rawSeconds = Math.round(stats.totalTimeMs / 1000);
+      accuracy = Math.max(0, Math.min(100, accuracy));
+      rawSeconds = Math.max(0, Math.round(stats.totalTimeMs / 1000));
     }
 
     return Object.freeze({

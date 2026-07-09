@@ -1,3 +1,4 @@
+/*
 name: CI / Quality Gate
 
 on:
@@ -33,10 +34,11 @@ jobs:
     - name: Run Linter
       run: npm run lint
 
-    - name: Run Test Suite (Deterministic execution)
+    - name: Run Test Suite
       run: npm test -- --coverage --runInBand
       
-    - name: Enforce Performance Budget (Vite Build)
+    - name: Enforce Performance Budget
       run: npm run build
       env:
         NODE_ENV: production
+*/

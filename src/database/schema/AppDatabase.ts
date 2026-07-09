@@ -19,9 +19,8 @@ export class AppDatabase extends Dexie {
       ErrorReporter.report('AppDatabase', new Error('Database upgrade blocked by another tab.'));
     });
 
-    // Cooperatively close connection when database is being upgraded or deleted in another tab/worker
     this.on('versionchange', () => {
-      this.close();
+      this.close(); // Prevent corruption during multi-tab version upgrades
     });
   }
 }

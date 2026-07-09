@@ -4,7 +4,6 @@ declare let self: ServiceWorkerGlobalScope;
 const CACHE_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || 'v1';
 const CACHE_NAME = `naharpaz-srs-${CACHE_VERSION}`;
 
-// Pre-cache only critical shell assets. Let runtime handle the rest.
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
@@ -15,7 +14,6 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event: ExtendableEvent) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Install Fail Safe: Prevent missing files from breaking SW install
       return Promise.allSettled(
         ASSETS_TO_CACHE.map(asset => cache.add(asset))
       );
@@ -45,7 +43,6 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
 self.addEventListener('fetch', (event: FetchEvent) => {
   const request = event.request;
 
-  // 1. Ignore non-GET requests and dev/API/Next.js dynamic routes
   if (
     request.method !== 'GET' ||
     request.url.startsWith('chrome-extension://') ||
@@ -55,7 +52,6 @@ self.addEventListener('fetch', (event: FetchEvent) => {
     return;
   }
 
-  // 2. Offline Fallback for Navigation
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() => caches.match('/') as Promise<Response>)
@@ -63,7 +59,6 @@ self.addEventListener('fetch', (event: FetchEvent) => {
     return;
   }
 
-  // 3. Stale-While-Revalidate with strict caching rules
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const fetchPromise = fetch(request).then((networkResponse) => {
@@ -74,9 +69,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
           );
         }
         return networkResponse;
-      }).catch(() => {
-        // Silent catch for offline execution
-      });
+      }).catch(() => {});
 
       return cachedResponse || fetchPromise as Promise<Response>;
     })

@@ -16,7 +16,7 @@ export function useDashboard() {
     try {
       const data = await dashboardService.getTodayMetrics(signal);
       if (!signal.aborted) {
-        setMetrics(data);
+        setMetrics(Object.freeze(data));
         setError(null);
       }
     } catch (err) {
@@ -32,25 +32,28 @@ export function useDashboard() {
   }, []);
 
   useEffect(() => {
+    abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     loadMetrics(controller.signal);
 
-    // Reactive Auto-Refresh via EventBus boundary subscription
     const handleSystemEvent = () => {
+      abortControllerRef.current?.abort();
       const freshController = new AbortController();
       abortControllerRef.current = freshController;
       loadMetrics(freshController.signal);
     };
 
-    eventBus.subscribe('REVIEW_COMPLETED', handleSystemEvent);
-    eventBus.subscribe('IMPORT_COMPLETED', handleSystemEvent);
-    eventBus.subscribe('RESTORE_COMPLETED', handleSystemEvent);
+    const unsubReview = eventBus.subscribe('REVIEW_COMPLETED', handleSystemEvent);
+    const unsubImport = eventBus.subscribe('IMPORT_COMPLETED', handleSystemEvent);
+    const unsubRestore = eventBus.subscribe('RESTORE_COMPLETED', handleSystemEvent);
 
     return () => {
       controller.abort();
-      if (abortControllerRef.current) abortControllerRef.current.abort();
+      unsubReview();
+      unsubImport();
+      unsubRestore();
     };
   }, [loadMetrics]);
 

@@ -1,6 +1,4 @@
-'use client';
-
-import React from 'react';
+import React, { useRef } from 'react';
 import { useSettings } from './hooks/useSettings';
 import { UI_CONSTANTS } from '@/shared/constants/UIConstants';
 
@@ -16,35 +14,39 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     handleRestoreFile
   } = useSettings();
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   if (!settings) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) handleRestoreFile(file);
-    // Reset value so selecting the same file again triggers onChange
-    e.target.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleNumberChange = (field: 'newCardsCap' | 'reviewCardsCap', valueStr: string) => {
     const value = Number(valueStr);
     if (Number.isNaN(value)) return;
     
-    // Bounds handled by Zod in the Service Layer, but we clamp UI to be user-friendly
     const max = field === 'newCardsCap' ? 500 : 5000;
     const clamped = Math.min(max, Math.max(1, value));
     handleUpdateSetting({ [field]: clamped });
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-8 flex flex-col">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-8 flex flex-col relative">
+      {isProcessing && (
+        <div className="absolute inset-0 z-50 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      )}
+
       <div className="max-w-2xl w-full mx-auto flex flex-col gap-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{UI_CONSTANTS.SETTINGS.TITLE}</h1>
 
-        {/* Alerts */}
         {successMessage && <div role="status" className="p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl text-sm font-medium border border-green-100 dark:border-green-900/30 transition-all">{successMessage}</div>}
         {errorMessage && <div role="alert" className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium border border-red-100 dark:border-red-900/30 transition-all">{errorMessage}</div>}
 
-        {/* Theme Settings */}
         <section className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col gap-4">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{UI_CONSTANTS.SETTINGS.THEME_LABEL}</h2>
           <div className="flex gap-3">
@@ -65,7 +67,6 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           </div>
         </section>
 
-        {/* SRS Tuning Limits */}
         <section className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col gap-4">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{UI_CONSTANTS.SETTINGS.SRS_CONFIG_TITLE}</h2>
           <div className="flex flex-col gap-3">
@@ -98,7 +99,6 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           </div>
         </section>
 
-        {/* Portability / Backups */}
         <section className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col gap-4">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{UI_CONSTANTS.SETTINGS.PORTABILITY_TITLE}</h2>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -123,6 +123,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             <input
               type="file"
               accept=".json"
+              ref={fileInputRef}
               disabled={isProcessing}
               onChange={handleFileChange}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300 disabled:opacity-50"

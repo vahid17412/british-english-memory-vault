@@ -24,7 +24,9 @@ export function usePWAStatus() {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
-    const handleAppInstalled = () => setDeferredPrompt(null);
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -36,9 +38,7 @@ export function usePWAStatus() {
         setReloadAppFn(() => reloadFn);
         setShowUpdateAlert(true);
       },
-      onOfflineReady: () => {
-        // Safe hook point for caching confirmations
-      }
+      onOfflineReady: () => {}
     });
 
     return () => {

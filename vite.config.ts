@@ -12,7 +12,7 @@ export default defineConfig({
   build: {
     target: 'esnext',
     sourcemap: false,
-    chunkSizeWarningLimit: 700, // Adjusted allocation budget for PWA offline dependencies
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -26,7 +26,6 @@ export default defineConfig({
   },
   server: {
     headers: {
-      // Hardened Content Security Policy. Dropped obsolete X-XSS-Protection.
       'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;",
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',

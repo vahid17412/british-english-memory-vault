@@ -27,7 +27,6 @@ export class PWARegister {
           installingWorker.addEventListener('statechange', () => {
             if (installingWorker.state === 'installed') {
               if (navigator.serviceWorker.controller) {
-                // New update available, send SKIP_WAITING to trigger controllerchange
                 const reloadFn = () => installingWorker.postMessage({ type: 'SKIP_WAITING' });
                 if (callbacks) callbacks.onUpdateFound(reloadFn);
               } else {
@@ -37,7 +36,7 @@ export class PWARegister {
           });
         };
       } catch (error) {
-        // Production safety bounds
+        // Safe infrastructure logging omitted to prevent console noise
       }
     });
   }

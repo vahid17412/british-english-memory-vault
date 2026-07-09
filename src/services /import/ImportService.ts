@@ -4,7 +4,7 @@ import { IIdGenerator } from '@/shared/interfaces/IIdGenerator';
 import { ITransactionManager } from '@/shared/interfaces/ITransactionManager';
 import { IEventBus } from '@/events/IEventBus';
 import { SearchService } from '@/services/SearchService';
-import { ImportRequestMessage, ImportResponseMessage, ParsedCardDTO } from '@/infrastructure/import/ImportWorkerTypes';
+import { ImportResponseMessage, ParsedCardDTO } from '@/infrastructure/import/ImportWorkerTypes';
 import { ParsedCardSchema } from '@/infrastructure/security/ImportValidator';
 import { Card } from '@/domain/models/Card';
 import { ErrorReporter } from '@/shared/utils/ErrorReporter';
@@ -23,12 +23,10 @@ export class ImportService {
   async importRawText(rawText: string, delimiter: string = '\t', signal?: AbortSignal): Promise<number> {
     if (signal?.aborted) throw new Error('Import aborted initially.');
 
-    // 1. Worker Execution with guaranteed termination
     const rawDTOs = await this.runWorkerParsing(rawText, delimiter);
     if (signal?.aborted) throw new Error('Import aborted post-parsing.');
     if (rawDTOs.length === 0) return 0;
 
-    // 2. Strict Zod Validation (Silently filter out invalid rows)
     const validDTOs: ParsedCardDTO[] = [];
     for (const dto of rawDTOs) {
       const parseResult = ParsedCardSchema.safeParse(dto);
@@ -37,62 +35,64 @@ export class ImportService {
       }
     }
 
-    // 3. Database Deduplication Check
-    const incomingForms = validDTOs.map(dto => dto.canonicalForm);
-    const existingCards = await this.cardRepo.getByCanonicalForms(incomingForms);
-    const existingFormsSet = new Set(existingCards.map(c => c.canonicalForm));
-
-    const novelDTOs = validDTOs.filter(dto => !existingFormsSet.has(dto.canonicalForm));
-    if (novelDTOs.length === 0) return 0;
+    if (validDTOs.length === 0) return 0;
 
     const now = this.clock.now();
-    const newCards: Card[] = novelDTOs.map(dto => Object.freeze({
-      id: this.idGenerator.generate(),
-      canonicalForm: dto.canonicalForm,
-      target: dto.target,
-      type: 'word',
-      ipa: dto.ipa,
-      englishMeaning: dto.englishMeaning,
-      persianMeaning: dto.persianMeaning,
-      status: 'learning',
-      difficulty: 50,
-      recallStrength: 0,
-      intervalDays: 0,
-      nextReviewAt: now,
-      consecutiveSuccesses: 0,
-      consecutiveFailures: 0,
-      createdAt: now,
-      updatedAt: now,
-    }));
+    let insertedCount = 0;
 
-    // 4. Atomic Transaction via Chunks
     await this.transactionManager.runInTransaction(async () => {
+      const incomingForms = validDTOs.map(dto => dto.canonicalForm);
+      const existingCards = await this.cardRepo.getByCanonicalForms(incomingForms);
+      const existingFormsSet = new Set(existingCards.map(c => c.canonicalForm));
+
+      const novelDTOs = validDTOs.filter(dto => !existingFormsSet.has(dto.canonicalForm));
+      if (novelDTOs.length === 0) return;
+
+      const newCards: Card[] = novelDTOs.map(dto => Object.freeze({
+        id: this.idGenerator.generate(),
+        canonicalForm: dto.canonicalForm,
+        target: dto.target,
+        type: 'word',
+        ipa: dto.ipa,
+        englishMeaning: dto.englishMeaning,
+        persianMeaning: dto.persianMeaning,
+        status: 'learning',
+        difficulty: 50,
+        recallStrength: 0,
+        intervalDays: 0,
+        nextReviewAt: now,
+        consecutiveSuccesses: 0,
+        consecutiveFailures: 0,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
       for (let i = 0; i < newCards.length; i += APP_CONFIG.IMPORT.CHUNK_SIZE) {
         if (signal?.aborted) throw new Error('Import aborted during DB write.');
         const chunk = newCards.slice(i, i + APP_CONFIG.IMPORT.CHUNK_SIZE);
         await this.cardRepo.bulkUpsert(chunk);
       }
+      
+      insertedCount = newCards.length;
     });
 
-    if (signal?.aborted) return newCards.length; // DB is updated, but halted early.
+    if (signal?.aborted || insertedCount === 0) return insertedCount;
 
-    // 5. Search Engine Synchronization (Fail-Safe)
     try {
       await this.searchService.reindexAll();
     } catch (err) {
-      ErrorReporter.report('ImportService: Search Reindex Failed after successful DB import', err);
+      ErrorReporter.report('ImportService: Search Reindex Failed', err);
     }
 
-    // 6. Asynchronous Event Publishing
     await this.eventBus.publish({
       type: 'IMPORT_COMPLETED',
       payload: Object.freeze({
         timestamp: now,
-        totalCardsImported: newCards.length,
+        totalCardsImported: insertedCount,
       })
     });
 
-    return newCards.length;
+    return insertedCount;
   }
 
   private runWorkerParsing(rawText: string, delimiter: string): Promise<readonly ParsedCardDTO[]> {
@@ -105,18 +105,17 @@ export class ImportService {
 
       worker.onmessage = (event: MessageEvent<ImportResponseMessage>) => {
         const { data } = event;
-        worker.terminate(); // Guaranteed termination on success
-        
+        worker.terminate();
         if (data.type === 'PARSE_SUCCESS') resolve(data.data);
         else reject(new Error(data.error));
       };
 
       worker.onerror = (error) => {
-        worker.terminate(); // Guaranteed termination on failure
+        worker.terminate();
         reject(new Error(`Worker instantiation failed: ${error.message}`));
       };
 
-      worker.postMessage({ type: 'PARSE_RAW_DATA', rawText, delimiter } as ImportRequestMessage);
+      worker.postMessage({ type: 'PARSE_RAW_DATA', rawText, delimiter });
     });
   }
 }

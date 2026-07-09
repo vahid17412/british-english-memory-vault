@@ -1,6 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorReporter } from '@/shared/utils/ErrorReporter';
-import { UI_CONSTANTS } from '@/shared/constants/UIConstants';
 
 interface Props {
   readonly children: ReactNode;
@@ -18,7 +17,6 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(): State {
-    // Safe fallback for environments lacking crypto.randomUUID (e.g., older WebViews)
     const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID().split('-')[0]
       : `err-${Date.now().toString(36)}`;
@@ -33,9 +31,15 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     ErrorReporter.report('GlobalErrorBoundary', { error, errorInfo });
   }
 
+  private handleCopy = () => {
+    if (this.state.errorId) {
+      navigator.clipboard.writeText(this.state.errorId).catch(() => {});
+    }
+  }
+
   private handleReset = () => {
     if (typeof window !== 'undefined') {
-      window.location.assign('/'); // Safe and deterministic redirect to dashboard root
+      window.location.assign('/');
     }
   };
 
@@ -54,7 +58,11 @@ export class GlobalErrorBoundary extends Component<Props, State> {
           <p className="text-gray-600 dark:text-gray-400 max-w-md mb-6">
             We encountered an unexpected error. Your flashcard data is safe in the local database.
           </p>
-          <div className="text-xs text-gray-400 dark:text-gray-600 font-mono mb-8">
+          <div 
+            onClick={this.handleCopy}
+            className="text-xs text-gray-400 dark:text-gray-600 font-mono mb-8 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            title="Click to copy Error ID"
+          >
             Error ID: {this.state.errorId}
           </div>
           <button 

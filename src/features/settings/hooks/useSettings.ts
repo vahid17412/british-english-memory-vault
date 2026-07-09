@@ -13,17 +13,16 @@ export function useSettings() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const fileReaderRef = useRef<FileReader | null>(null);
 
-  // Initial Load
   useEffect(() => {
+    let isMounted = true;
     settingsService.getSettings().then(data => {
+      if (!isMounted) return;
       setSettings(data);
       settingsService.applyTheme(data.theme);
     }).catch(e => ErrorReporter.report('LoadSettings', e));
-  }, []);
 
-  // Cleanup effect
-  useEffect(() => {
     return () => {
+      isMounted = false;
       abortControllerRef.current?.abort();
       if (fileReaderRef.current && fileReaderRef.current.readyState === FileReader.LOADING) {
         fileReaderRef.current.abort();
@@ -31,11 +30,18 @@ export function useSettings() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!successMessage) return;
+    const timer = setTimeout(() => {
+      setSuccessMessage(null);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
+
   const handleUpdateSetting = useCallback(async (updates: Partial<AppSettings>) => {
     if (!settings) return;
     const updated: AppSettings = Object.freeze({ ...settings, ...updates });
     
-    // Optimistic UI update
     setSettings(updated);
     setSuccessMessage(null);
     setErrorMessage(null);
@@ -98,7 +104,6 @@ export function useSettings() {
         
         if (controller.signal.aborted) return;
         
-        // Re-apply settings/theme after successful restore (in case backup contained config in future)
         const refreshedSettings = await settingsService.getSettings();
         settingsService.applyTheme(refreshedSettings.theme);
         setSettings(refreshedSettings);
