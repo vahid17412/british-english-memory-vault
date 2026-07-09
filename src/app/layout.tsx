@@ -12,6 +12,19 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
 };
+<head>
+  <script dangerouslySetInnerHTML={{
+    __html: `
+      try {
+        var local = localStorage.getItem('naharpaz_srs_settings');
+        if (local && JSON.parse(local).theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    `
+  }} />
+</head>
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

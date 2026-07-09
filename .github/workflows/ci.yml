@@ -1,0 +1,42 @@
+name: CI / Quality Gate
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: TypeScript Strict Check
+      run: npx tsc --noEmit
+      
+    - name: Run Linter
+      run: npm run lint
+
+    - name: Run Test Suite (Deterministic execution)
+      run: npm test -- --coverage --runInBand
+      
+    - name: Enforce Performance Budget (Vite Build)
+      run: npm run build
+      env:
+        NODE_ENV: production

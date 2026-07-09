@@ -1,25 +1,27 @@
 import Dexie, { Table } from 'dexie';
-import { Card, Example, Tag, CardTag, ReviewHistory } from '@/domain/models';
-
-const DATABASE_NAME = 'MemoryVaultDB';
+import { Card } from '@/domain/models/Card';
+import { ReviewHistory } from '@/domain/models/ReviewHistory';
+import { ErrorReporter } from '@/shared/utils/ErrorReporter';
 
 export class AppDatabase extends Dexie {
   cards!: Table<Card, string>;
-  examples!: Table<Example, string>;
-  tags!: Table<Tag, string>;
-  cardTags!: Table<CardTag, string>;
   reviewHistory!: Table<ReviewHistory, string>;
 
   constructor() {
-    super(DATABASE_NAME);
+    super('NaharPazSRSDatabase');
 
-    // Schema defined with architectural indices
     this.version(1).stores({
-      cards: 'id, canonicalForm, status, nextReviewAt, updatedAt, deletedAt',
-      examples: 'id, cardId',
-      tags: 'id, name',
-      cardTags: '[cardId+tagId], cardId, tagId',
+      cards: 'id, canonicalForm, status, nextReviewAt, updatedAt',
       reviewHistory: 'id, cardId, timestamp'
+    });
+    
+    this.on('blocked', () => {
+      ErrorReporter.report('AppDatabase', new Error('Database upgrade blocked by another tab.'));
+    });
+
+    // Cooperatively close connection when database is being upgraded or deleted in another tab/worker
+    this.on('versionchange', () => {
+      this.close();
     });
   }
 }
